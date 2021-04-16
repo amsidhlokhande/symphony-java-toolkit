@@ -18,13 +18,30 @@ import org.finos.symphony.toolkit.workflow.form.ButtonList;
 import org.finos.symphony.toolkit.workflow.form.Button.Type;
 import org.finos.symphony.toolkit.workflow.java.Exposed;
 import org.finos.symphony.toolkit.workflow.java.Work;
+import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.freemarker.annotations.Display;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
+import org.springframework.core.type.filter.AnnotationTypeFilter;
+import org.springframework.stereotype.Service;
+import org.springframework.util.ReflectionUtils;
 
-public class ClassBasedWorkflow extends AbstractWorkflow implements ConfigurableWorkflow {
+import static java.util.Optional.ofNullable;
+
+@Service
+public class ClassBasedWorkflow extends AbstractWorkflow implements ConfigurableWorkflow, BeanPostProcessor {
 	
 	public static final String WF_EDIT = "wf-edit";
 	private List<Class<?>> workflowClasses = new ArrayList<>();
 	private Map<String, Method> methods = new HashMap<>();
-	
+
+	@Value("${work.base.package:org.finos.symphony.toolkit.workflow.java.workflow}")
+	private String workBasePackage;
+
 	public ClassBasedWorkflow(String namespace) {
 		this(namespace, Collections.emptyList(), Collections.emptyList());
 	}
@@ -185,6 +202,37 @@ public class ClassBasedWorkflow extends AbstractWorkflow implements Configurable
 
 	public Method getMethodFor(String commandName) {
 		return methods.get(commandName);
+	}
+
+	@Override
+	public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+		return bean;
+	}
+	@Override
+	public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+		findAnnotatedClasses(this.workBasePackage);
+		return bean;
+	}
+
+	public void findAnnotatedClasses(String scanPackage) {
+		ClassPathScanningCandidateComponentProvider provider = createComponentScanner();
+		for (BeanDefinition beanDef : provider.findCandidateComponents(scanPackage)) {
+			try{
+				Class<?> cl = Class.forName(beanDef.getBeanClassName());
+				ofNullable(cl.getAnnotation(Work.class)).ifPresent(work -> {
+					addClass(cl);
+				});
+			}catch (Exception e) {
+				System.err.println("Got exception: " + e.getMessage());
+			}
+		}
+	}
+
+	private ClassPathScanningCandidateComponentProvider createComponentScanner() {
+		ClassPathScanningCandidateComponentProvider provider
+				= new ClassPathScanningCandidateComponentProvider(false);
+		provider.addIncludeFilter(new AnnotationTypeFilter(Work.class));
+		return provider;
 	}
 }
 
