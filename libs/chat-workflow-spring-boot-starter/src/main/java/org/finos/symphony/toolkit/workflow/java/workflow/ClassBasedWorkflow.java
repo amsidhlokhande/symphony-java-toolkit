@@ -1,238 +1,233 @@
 package org.finos.symphony.toolkit.workflow.java.workflow;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import org.finos.symphony.toolkit.workflow.AbstractWorkflow;
 import org.finos.symphony.toolkit.workflow.content.Addressable;
 import org.finos.symphony.toolkit.workflow.content.Room;
 import org.finos.symphony.toolkit.workflow.content.User;
 import org.finos.symphony.toolkit.workflow.form.Button;
-import org.finos.symphony.toolkit.workflow.form.ButtonList;
 import org.finos.symphony.toolkit.workflow.form.Button.Type;
+import org.finos.symphony.toolkit.workflow.form.ButtonList;
 import org.finos.symphony.toolkit.workflow.java.Exposed;
 import org.finos.symphony.toolkit.workflow.java.Work;
-import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.freemarker.annotations.Display;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
+import org.springframework.core.type.filter.TypeFilter;
 import org.springframework.stereotype.Service;
-import org.springframework.util.ReflectionUtils;
+
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 
 @Service
-public class ClassBasedWorkflow extends AbstractWorkflow implements ConfigurableWorkflow, BeanPostProcessor {
-	
-	public static final String WF_EDIT = "wf-edit";
-	private List<Class<?>> workflowClasses = new ArrayList<>();
-	private Map<String, Method> methods = new HashMap<>();
+public class ClassBasedWorkflow extends AbstractWorkflow implements ConfigurableWorkflow {
+    private static final Logger LOG = LoggerFactory.getLogger(ClassBasedWorkflow.class);
+    public static final String WF_EDIT = "wf-edit";
+    private List<Class<?>> workflowClasses = new ArrayList<>();
+    private Map<String, Method> methods = new HashMap<>();
 
-	@Value("${work.base.package:org.finos.symphony.toolkit.workflow.java.workflow}")
-	private String workBasePackage;
+    public ClassBasedWorkflow(String namespace) {
+        this(namespace, Collections.emptyList(), Collections.emptyList());
+    }
 
-	public ClassBasedWorkflow(String namespace) {
-		this(namespace, Collections.emptyList(), Collections.emptyList());
-	}
-	
-	public ClassBasedWorkflow(String namespace, List<User> admins, List<Room> keyRooms) {
-		super(namespace, admins, keyRooms); 
-	}
-	
-	public class ClassBasedCommandDescription implements CommandDescription {
-		
-		private Method m;
-		private Exposed e;
-		
-		public ClassBasedCommandDescription(Method m) {
-			this.m = m;
-			this.e = m.getAnnotation(Exposed.class);
-		}
+    public ClassBasedWorkflow(String namespace, List<User> admins, List<Room> keyRooms) {
+        super(namespace, admins, keyRooms);
+    }
 
-		@Override
-		public String getName() {
-			return m.getName();
-		}
+    public class ClassBasedCommandDescription implements CommandDescription {
 
-		@Override
-		public String getDescription() {
-			return ClassBasedWorkflow.getDescription(m);
-		}
-		
-		public Method getMethod() {
-			return m;
-		}
+        private Method m;
+        private Exposed e;
 
-		@Override
-		public boolean addToHelp() {
-			return e.addToHelp();
-		}
+        public ClassBasedCommandDescription(Method m) {
+            this.m = m;
+            this.e = m.getAnnotation(Exposed.class);
+        }
 
-		@Override
-		public boolean isButton() {
-			return e.isButton();
-		}
+        @Override
+        public String getName() {
+            return m.getName();
+        }
 
-		@Override
-		public boolean isMessage() {
-			return e.isMessage();
-		}
-		
-	}
+        @Override
+        public String getDescription() {
+            return ClassBasedWorkflow.getDescription(m);
+        }
 
-	@Override
-	public List<CommandDescription> getCommands(Addressable r) {
-		return methods.entrySet().stream()
-			.filter(e -> validCommandInAddressable(e.getValue(), r))
-			.map(method -> new ClassBasedCommandDescription(method.getValue()))
-			.collect(Collectors.toList());
-	}
-	
-	public void addClass(Class<?> e) {
-		matchingMethods(e, null).stream()
-			.forEach(m -> {
-				if (methods.containsKey(m.getName())) {
-					throw new UnsupportedOperationException("Methods clash: "+m+" with "+methods.get(m.getName()));					
-				} 
-				methods.put(m.getName(), m);
-			});
-		workflowClasses.add(e);
-	}
-	
-	private List<Method> matchingMethods(Class<?> c, Addressable a) {
-		if ((c == null) || (c == Object.class)) {
-			return Collections.emptyList();
-		}
-		
-		List<Method> out = new ArrayList<>();
-		
-		for (Method m : c.getDeclaredMethods()) {
-			if (m.getAnnotation(Exposed.class) != null) {
-				if (validCommandInAddressable(m, a)) {
-					out.add(m);
-				}
-			}
-		}
-		
-		out.addAll(matchingMethods(c.getSuperclass(), a));
-		return out;
-	}
-	
-	@Override
-	public ButtonList gatherButtons(Object out, Addressable r) {
-		ButtonList buttons = new ButtonList();
-		if (out.getClass().isAnnotationPresent(Work.class)) {
-			Work w = out.getClass().getAnnotation(Work.class);
-			if (w.editable()) {
-				buttons.add(new Button(WF_EDIT, Type.ACTION, "Edit"));
-			}
-		}
-		
-		List<Method> cms = matchingMethods(out.getClass(), r);
-		if (cms != null) {
-			for (Method method : cms) {
-				if (!Modifier.isStatic(method.getModifiers())) {
-					CommandDescription cd = new ClassBasedCommandDescription(method);
-					if (cd.isButton()) {
-						buttons.add(new Button(method.getName(), Type.ACTION, method.getName()));
-					}
-				}
-			}
-		}
-		
-		return buttons;
-	}
+        public Method getMethod() {
+            return m;
+        }
 
-	@Override
-	public String getName(Class<?> c) {
-		Work w = c.getAnnotation(Work.class);
-		if (w != null) {
-			return w.name();
-		} else {
-			return c.getName();
-		}
-	}
-	
-	@Override
-	public String getInstructions(Class<?> c) {
-		Work w = c.getAnnotation(Work.class);
-		return w.instructions();
-	}
-	
-	public static String getDescription(Method m) {
-		Exposed e = m.getAnnotation(Exposed.class);
-		return e.description();
-	}
-	
-	public boolean validCommandInAddressable(Method value, Addressable a) {
-		if (a == null) {
-			return true;
-		} else {
-			Exposed e = value.getAnnotation(Exposed.class);
-			if (e.rooms().length == 0) {
-				return true;
-			} else if (a instanceof Room) {
-				Room r = (Room) a;
-				for (int i = 0; i < e.rooms().length; i++) {
-					if (e.rooms()[i].equals(r.getRoomName())) {
-						return true;
-					}
-				}
-			}
-			
-			return false;
-		}
-	}
+        @Override
+        public boolean addToHelp() {
+            return e.addToHelp();
+        }
 
-	@Override
-	public List<Class<?>> getDataTypes() {
-		return workflowClasses;
-	}
+        @Override
+        public boolean isButton() {
+            return e.isButton();
+        }
 
-	public Method getMethodFor(String commandName) {
-		return methods.get(commandName);
-	}
+        @Override
+        public boolean isMessage() {
+            return e.isMessage();
+        }
 
-	@Override
-	public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-		return bean;
-	}
-	@Override
-	public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-		findAnnotatedClasses(this.workBasePackage);
-		return bean;
-	}
+    }
 
-	public void findAnnotatedClasses(String scanPackage) {
-		ClassPathScanningCandidateComponentProvider provider = createComponentScanner();
-		for (BeanDefinition beanDef : provider.findCandidateComponents(scanPackage)) {
-			try{
-				Class<?> cl = Class.forName(beanDef.getBeanClassName());
-				ofNullable(cl.getAnnotation(Work.class)).ifPresent(work -> {
-					addClass(cl);
-				});
-			}catch (Exception e) {
-				System.err.println("Got exception: " + e.getMessage());
-			}
-		}
-	}
+    @Override
+    public List<CommandDescription> getCommands(Addressable r) {
+        return methods.entrySet().stream()
+                .filter(e -> validCommandInAddressable(e.getValue(), r))
+                .map(method -> new ClassBasedCommandDescription(method.getValue()))
+                .collect(Collectors.toList());
+    }
 
-	private ClassPathScanningCandidateComponentProvider createComponentScanner() {
-		ClassPathScanningCandidateComponentProvider provider
-				= new ClassPathScanningCandidateComponentProvider(false);
-		provider.addIncludeFilter(new AnnotationTypeFilter(Work.class));
-		return provider;
-	}
+    public void addClass(Class<?> e) {
+        matchingMethods(e, null).stream()
+                .forEach(m -> {
+                    if (methods.containsKey(m.getName())) {
+                        throw new UnsupportedOperationException("Methods clash: " + m + " with " + methods.get(m.getName()));
+                    }
+                    methods.put(m.getName(), m);
+                });
+        workflowClasses.add(e);
+    }
+
+    private List<Method> matchingMethods(Class<?> c, Addressable a) {
+        if ((c == null) || (c == Object.class)) {
+            return Collections.emptyList();
+        }
+
+        List<Method> out = new ArrayList<>();
+
+        for (Method m : c.getDeclaredMethods()) {
+            if (m.getAnnotation(Exposed.class) != null) {
+                if (validCommandInAddressable(m, a)) {
+                    out.add(m);
+                }
+            }
+        }
+
+        out.addAll(matchingMethods(c.getSuperclass(), a));
+        return out;
+    }
+
+    @Override
+    public ButtonList gatherButtons(Object out, Addressable r) {
+        ButtonList buttons = new ButtonList();
+        if (out.getClass().isAnnotationPresent(Work.class)) {
+            Work w = out.getClass().getAnnotation(Work.class);
+            if (w.editable()) {
+                buttons.add(new Button(WF_EDIT, Type.ACTION, "Edit"));
+            }
+        }
+
+        List<Method> cms = matchingMethods(out.getClass(), r);
+        if (cms != null) {
+            for (Method method : cms) {
+                if (!Modifier.isStatic(method.getModifiers())) {
+                    CommandDescription cd = new ClassBasedCommandDescription(method);
+                    if (cd.isButton()) {
+                        buttons.add(new Button(method.getName(), Type.ACTION, method.getName()));
+                    }
+                }
+            }
+        }
+
+        return buttons;
+    }
+
+    @Override
+    public String getName(Class<?> c) {
+        Work w = c.getAnnotation(Work.class);
+        if (w != null) {
+            return w.name();
+        } else {
+            return c.getName();
+        }
+    }
+
+    @Override
+    public String getInstructions(Class<?> c) {
+        Work w = c.getAnnotation(Work.class);
+        return w.instructions();
+    }
+
+    public static String getDescription(Method m) {
+        Exposed e = m.getAnnotation(Exposed.class);
+        return e.description();
+    }
+
+    public boolean validCommandInAddressable(Method value, Addressable a) {
+        if (a == null) {
+            return true;
+        } else {
+            Exposed e = value.getAnnotation(Exposed.class);
+            if (e.rooms().length == 0) {
+                return true;
+            } else if (a instanceof Room) {
+                Room r = (Room) a;
+                for (int i = 0; i < e.rooms().length; i++) {
+                    if (e.rooms()[i].equals(r.getRoomName())) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+    }
+
+    @Override
+    public List<Class<?>> getDataTypes() {
+        return workflowClasses;
+    }
+
+    public Method getMethodFor(String commandName) {
+        return methods.get(commandName);
+    }
+
+    public void registerWorkClasses(Set<Class> workClasses) {
+        Optional.ofNullable(workClasses).ifPresent(classes -> classes.forEach(this::addClass));
+    }
+
+    public Set<Class> scanPackagesWithTypeFilter(Set<String> scanPackages, TypeFilter typeFilter) {
+        final Set<Class> workClasses = new HashSet<>();
+        final ClassPathScanningCandidateComponentProvider provider = createComponentScanner(typeFilter);
+
+        Optional.ofNullable(scanPackages).ifPresent(packages -> {
+            packages.forEach(pk -> {
+                Optional.ofNullable(provider.findCandidateComponents(pk)).ifPresent(beanDefinitions -> {
+                    beanDefinitions.forEach(beanDefinition -> {
+                        try {
+                            Class<?> workClass = Class.forName(beanDefinition.getBeanClassName());
+                            if (!workClasses.contains(workClass)) {
+                                workClasses.add(workClass);
+                            }
+                        } catch (Exception ex) {
+                            LOG.error( String.format("Exception occurred while registering work class %s", beanDefinition.getBeanClassName()));
+                            LOG.error(ex.getMessage());
+                        }
+                    });
+                });
+            });
+        });
+        return workClasses;
+    }
+
+    private ClassPathScanningCandidateComponentProvider createComponentScanner(TypeFilter typeFilter) {
+        ClassPathScanningCandidateComponentProvider provider = new ClassPathScanningCandidateComponentProvider(false);
+        provider.addIncludeFilter(typeFilter);
+        return provider;
+    }
 }
 
