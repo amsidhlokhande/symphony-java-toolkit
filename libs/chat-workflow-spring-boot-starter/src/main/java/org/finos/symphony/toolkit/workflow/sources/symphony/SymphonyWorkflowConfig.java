@@ -85,6 +85,9 @@ public class SymphonyWorkflowConfig {
     ResourceLoader resourceLoader;
 
     @Autowired
+    ApplicationContext applicationContext;
+
+    @Autowired
     Workflow wf;
 
     @Autowired
@@ -93,9 +96,6 @@ public class SymphonyWorkflowConfig {
     @Autowired
     @Lazy
     List<TypeConverter> converters;
-
-    @Autowired
-    private ApplicationContext applicationContext;
 
     @Bean
     @ConditionalOnMissingBean
@@ -251,7 +251,7 @@ public class SymphonyWorkflowConfig {
         packagesToScanWorkClass.add(defaultBasePackage);
         loadUserConfiguredPackages(packagesToScanWorkClass);
         Set<Class<?>> workAnnotatedClasses = classBasedWorkflow.scanPackagesWithTypeFilter(packagesToScanWorkClass, new AnnotationTypeFilter(Work.class));
-        if (ObjectUtils.isEmpty(workAnnotatedClasses)) {
+        if (!ObjectUtils.isEmpty(workAnnotatedClasses)) {
             classBasedWorkflow.registerWorkClasses(workAnnotatedClasses);
             return classBasedWorkflow;
         } else {
@@ -262,11 +262,14 @@ public class SymphonyWorkflowConfig {
 
     private String getDefaultBasePackage() {
         Map<String, Object> candidates = applicationContext.getBeansWithAnnotation(SpringBootApplication.class);
-
-        Class<?> baseClass = candidates.values().stream().findFirst().getClass();
-        String basePackage = baseClass.getPackage().getName();
-        LOG.info(String.format("Default base package is %s", basePackage));
-        return basePackage;
+        if(!ObjectUtils.isEmpty(candidates)){
+            Class<?> baseClass = candidates.values().toArray()[0].getClass();
+            String basePackage = baseClass.getPackage().getName();
+            LOG.info(String.format("Default base package is %s", basePackage));
+            return basePackage;
+        }else {
+            throw new RuntimeException("No class with SpringBootApplication annotation found.");
+        }
     }
 
     private void loadUserConfiguredPackages(Set<String> packages) {

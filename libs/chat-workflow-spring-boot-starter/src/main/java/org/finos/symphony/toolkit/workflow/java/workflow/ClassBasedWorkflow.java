@@ -13,14 +13,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.TypeFilter;
-import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Service
 public class ClassBasedWorkflow extends AbstractWorkflow implements ConfigurableWorkflow {
     private static final Logger LOG = LoggerFactory.getLogger(ClassBasedWorkflow.class);
     public static final String WF_EDIT = "wf-edit";
