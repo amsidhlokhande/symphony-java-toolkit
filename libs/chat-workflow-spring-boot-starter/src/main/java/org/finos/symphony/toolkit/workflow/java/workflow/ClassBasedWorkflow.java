@@ -189,31 +189,23 @@ public class ClassBasedWorkflow extends AbstractWorkflow implements Configurable
         return methods.get(commandName);
     }
 
-    public void registerWorkClasses(Set<Class> workClasses) {
+    public void registerWorkClasses(Set<Class<?>> workClasses) {
         Optional.ofNullable(workClasses).ifPresent(classes -> classes.forEach(this::addClass));
     }
 
-    public Set<Class> scanPackagesWithTypeFilter(Set<String> scanPackages, TypeFilter typeFilter) {
-        final Set<Class> workClasses = new HashSet<>();
+    public Set<Class<?>> scanPackagesWithTypeFilter(Set<String> scanPackages, TypeFilter typeFilter) {
+        final Set<Class<?>> workClasses = new HashSet<>();
         final ClassPathScanningCandidateComponentProvider provider = createComponentScanner(typeFilter);
 
-        Optional.ofNullable(scanPackages).ifPresent(packages -> {
-            packages.forEach(pk -> {
-                Optional.ofNullable(provider.findCandidateComponents(pk)).ifPresent(beanDefinitions -> {
-                    beanDefinitions.forEach(beanDefinition -> {
-                        try {
-                            Class<?> workClass = Class.forName(beanDefinition.getBeanClassName());
-                            if (!workClasses.contains(workClass)) {
-                                workClasses.add(workClass);
-                            }
-                        } catch (Exception ex) {
-                            LOG.error( String.format("Exception occurred while registering work class %s", beanDefinition.getBeanClassName()));
-                            LOG.error(ex.getMessage());
-                        }
-                    });
-                });
-            });
-        });
+        Optional.ofNullable(scanPackages).ifPresent(packages -> packages.forEach(pk -> provider.findCandidateComponents(pk).forEach(beanDefinition -> {
+            try {
+                Class<?> workClass = Class.forName(beanDefinition.getBeanClassName());
+                workClasses.add(workClass);
+            } catch (Exception ex) {
+                LOG.error(String.format("Exception occurred while registering work class %s", beanDefinition.getBeanClassName()));
+                LOG.error(ex.getMessage());
+            }
+        })));
         return workClasses;
     }
 

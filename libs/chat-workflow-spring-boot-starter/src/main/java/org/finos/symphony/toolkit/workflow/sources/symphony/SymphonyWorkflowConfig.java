@@ -1,7 +1,10 @@
 package org.finos.symphony.toolkit.workflow.sources.symphony;
 
-import java.util.*;
-
+import com.symphony.api.agent.MessagesApi;
+import com.symphony.api.id.SymphonyIdentity;
+import com.symphony.api.pod.RoomMembershipApi;
+import com.symphony.api.pod.StreamsApi;
+import com.symphony.api.pod.UsersApi;
 import org.finos.symphony.toolkit.spring.api.SymphonyApiConfig;
 import org.finos.symphony.toolkit.stream.single.SharedStreamSingleBotConfig;
 import org.finos.symphony.toolkit.workflow.CommandPerformer;
@@ -12,11 +15,7 @@ import org.finos.symphony.toolkit.workflow.java.Work;
 import org.finos.symphony.toolkit.workflow.java.resolvers.WorkflowResolver;
 import org.finos.symphony.toolkit.workflow.java.resolvers.WorkflowResolverFactory;
 import org.finos.symphony.toolkit.workflow.java.workflow.ClassBasedWorkflow;
-import org.finos.symphony.toolkit.workflow.sources.symphony.elements.ElementsArgumentWorkflowResolverFactory;
-import org.finos.symphony.toolkit.workflow.sources.symphony.elements.ElementsConsumer;
-import org.finos.symphony.toolkit.workflow.sources.symphony.elements.ElementsHandler;
-import org.finos.symphony.toolkit.workflow.sources.symphony.elements.FormConverter;
-import org.finos.symphony.toolkit.workflow.sources.symphony.elements.MethodCallElementsConsumer;
+import org.finos.symphony.toolkit.workflow.sources.symphony.elements.*;
 import org.finos.symphony.toolkit.workflow.sources.symphony.elements.edit.EditActionElementsConsumer;
 import org.finos.symphony.toolkit.workflow.sources.symphony.elements.edit.TableAddRow;
 import org.finos.symphony.toolkit.workflow.sources.symphony.elements.edit.TableDeleteRows;
@@ -28,12 +27,7 @@ import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.SymphonyRes
 import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.freemarker.FreemarkerFormMessageMLConverter;
 import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.freemarker.TypeConverter;
 import org.finos.symphony.toolkit.workflow.sources.symphony.history.MessageHistory;
-import org.finos.symphony.toolkit.workflow.sources.symphony.messages.HelpMessageConsumer;
-import org.finos.symphony.toolkit.workflow.sources.symphony.messages.MessagePartWorkflowResolverFactory;
-import org.finos.symphony.toolkit.workflow.sources.symphony.messages.MethodCallMessageConsumer;
-import org.finos.symphony.toolkit.workflow.sources.symphony.messages.PresentationMLHandler;
-import org.finos.symphony.toolkit.workflow.sources.symphony.messages.SimpleMessageConsumer;
-import org.finos.symphony.toolkit.workflow.sources.symphony.messages.SimpleMessageParser;
+import org.finos.symphony.toolkit.workflow.sources.symphony.messages.*;
 import org.finos.symphony.toolkit.workflow.sources.symphony.room.SymphonyRooms;
 import org.finos.symphony.toolkit.workflow.sources.symphony.room.SymphonyRoomsImpl;
 import org.slf4j.Logger;
@@ -52,11 +46,7 @@ import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.util.ObjectUtils;
 import org.springframework.validation.Validator;
 
-import com.symphony.api.agent.MessagesApi;
-import com.symphony.api.id.SymphonyIdentity;
-import com.symphony.api.pod.RoomMembershipApi;
-import com.symphony.api.pod.StreamsApi;
-import com.symphony.api.pod.UsersApi;
+import java.util.*;
 
 /**
  * Symphony beans needing the workflow bean to be defined.
@@ -260,32 +250,34 @@ public class SymphonyWorkflowConfig {
         Set<String> packagesToScanWorkClass = new HashSet<>();
         packagesToScanWorkClass.add(defaultBasePackage);
         loadUserConfiguredPackages(packagesToScanWorkClass);
-        Set<Class> workAnnotatedClasses = classBasedWorkflow.scanPackagesWithTypeFilter(packagesToScanWorkClass, new AnnotationTypeFilter(Work.class));
+        Set<Class<?>> workAnnotatedClasses = classBasedWorkflow.scanPackagesWithTypeFilter(packagesToScanWorkClass, new AnnotationTypeFilter(Work.class));
         if (ObjectUtils.isEmpty(workAnnotatedClasses)) {
             classBasedWorkflow.registerWorkClasses(workAnnotatedClasses);
             return classBasedWorkflow;
         } else {
-            throw new RuntimeException("No work annotated classes foudn in the application. Either add one or more work classes or configure WorkFlow class bean.");
+            throw new RuntimeException("No work annotated classes found in the application. Either add one or more work classes or configure WorkFlow class bean.");
         }
     }
 
 
     private String getDefaultBasePackage() {
         Map<String, Object> candidates = applicationContext.getBeansWithAnnotation(SpringBootApplication.class);
-        Class<? extends Optional> baseClass = Optional.ofNullable(candidates).map(candidate -> candidate.values().stream().findFirst()).getClass();
+
+        Class<?> baseClass = candidates.values().stream().findFirst().getClass();
         String basePackage = baseClass.getPackage().getName();
         LOG.info(String.format("Default base package is %s", basePackage));
         return basePackage;
     }
 
     private void loadUserConfiguredPackages(Set<String> packages) {
-        Set<String> userConfigPackages = (Set<String>) applicationContext.getEnvironment().getProperty("work.class.packages", Set.class);
-        Optional.ofNullable(userConfigPackages).ifPresent(pks -> {
-            LOG.info("User configured packages are :");
-            pks.forEach(pk -> {
+        String[] userConfigPackages = applicationContext.getEnvironment().getProperty("work.class.packages", String[].class);
+        if (!ObjectUtils.isEmpty(userConfigPackages)) {
+            LOG.info("User configured packages are : ");
+            Arrays.stream(userConfigPackages).forEach(pk -> {
                 LOG.info(pk);
                 packages.add(pk);
             });
-        });
+        }
+
     }
 }
