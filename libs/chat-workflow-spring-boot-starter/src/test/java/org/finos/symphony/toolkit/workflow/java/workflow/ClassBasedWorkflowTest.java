@@ -78,6 +78,14 @@ public class ClassBasedWorkflowTest {
         Assertions.assertTrue(classes.isEmpty());
 
     }
+
+    @Test
+    public void testScanPackagesWithNullPackage(){
+        Set<String> packages = new HashSet<>();
+        packages.add(null);
+        Set<Class<?>> classes = this.classBasedWorkflow.scanPackagesWithTypeFilter(packages, new AnnotationTypeFilter(Work.class));
+        Assertions.assertTrue(classes.isEmpty());
+    }
 }
 
 @Work

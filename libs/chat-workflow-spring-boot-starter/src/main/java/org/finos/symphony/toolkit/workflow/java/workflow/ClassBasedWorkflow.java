@@ -13,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.TypeFilter;
+import org.springframework.util.ObjectUtils;
+import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -195,15 +197,17 @@ public class ClassBasedWorkflow extends AbstractWorkflow implements Configurable
         final Set<Class<?>> workClasses = new HashSet<>();
         final ClassPathScanningCandidateComponentProvider provider = createComponentScanner(typeFilter);
 
-        Optional.ofNullable(scanPackages).ifPresent(packages -> packages.forEach(pk -> provider.findCandidateComponents(pk).forEach(beanDefinition -> {
-            try {
-                Class<?> workClass = Class.forName(beanDefinition.getBeanClassName());
-                workClasses.add(workClass);
-            } catch (Exception ex) {
-                LOG.error(String.format("Exception occurred while registering work class %s", beanDefinition.getBeanClassName()));
-                LOG.error(ex.getMessage());
-            }
-        })));
+        if(!ObjectUtils.isEmpty(scanPackages)){
+            scanPackages.stream().filter(pks-> StringUtils.hasText(pks)).forEach(pk -> provider.findCandidateComponents(pk).forEach(beanDefinition -> {
+                try {
+                    Class<?> workClass = Class.forName(beanDefinition.getBeanClassName());
+                    workClasses.add(workClass);
+                } catch (Exception ex) {
+                    LOG.error(String.format("Exception occurred while registering work class %s", beanDefinition.getBeanClassName()));
+                    LOG.error(ex.getMessage());
+                }
+            }));
+        }
         return workClasses;
     }
 
