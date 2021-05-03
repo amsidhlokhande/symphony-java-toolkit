@@ -69,4 +69,9 @@ public class FreemarkerTypeConverterConfig {
 	public UserConverter userConverter() {
 		return new UserConverter();
 	}
+
+	@Bean
+	public MapConverter mapConverter() {
+		return new MapConverter();
+	}
 }

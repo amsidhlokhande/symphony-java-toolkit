@@ -2,11 +2,7 @@ package org.finos.symphony.toolkit.workflow.fixture;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import org.finos.symphony.toolkit.workflow.Workflow;
 import org.finos.symphony.toolkit.workflow.content.Addressable;
@@ -28,7 +24,9 @@ public class TestWorkflowConfig {
 	public static final TestObjects INITIAL_TEST_OBJECTS = createTestObjects();
 	
 	public static final List<String> ADMIN_EMAILS = Collections.singletonList("robert.moffat@example.com");
-	
+
+	public static final TestMap INITIAL_TEST_MAP = createTestMap();
+
 	public static TestObject createTestObject() {
 		return new TestObject("AUD274239874", true, false, "gregb@example.com", 2386, new BigDecimal("234823498.573"));
 	}
@@ -42,7 +40,16 @@ public class TestWorkflowConfig {
 
 	public static final User u = new UserDef("123", "Testy McTestFace", "tmt@example.com");
 	public static final Room room = new RoomDef("Test Room",  "Test Room Desc", false, null);
-	
+
+	private static TestMap createTestMap() {
+		Map<String, String> stateCapitals = new HashMap<>();
+		stateCapitals.put("MH", "Mumbai");
+		stateCapitals.put("DEL", "Delhi");
+		stateCapitals.put("KA", "Bangalore");
+		TestMap testMap = new TestMap("State-Capitals", stateCapitals);
+		return testMap;
+	}
+
 	@Bean
 	public History symphonyHistory(Workflow wf) {
 		History h = new History() {
@@ -54,6 +61,8 @@ public class TestWorkflowConfig {
 					return Optional.of((X) INITIAL_TEST_OBJECT);
 				} else if (type == TestObjects.class) {
 					return Optional.of((X) INITIAL_TEST_OBJECTS);
+				}else if (type == TestMap.class) {
+					return Optional.of((X) INITIAL_TEST_MAP);
 				} else {
 					throw new IllegalArgumentException();
 				}
@@ -89,6 +98,8 @@ public class TestWorkflowConfig {
 		basicWorkflow.addClass(TestOb3.class);
 		basicWorkflow.addClass(TestOb4.class);
 		basicWorkflow.addClass(TestTemplatedObject.class);
+		basicWorkflow.addClass(TestMap.class);
+		basicWorkflow.addClass(StateCapital.class);
 		return basicWorkflow;
 	}
 

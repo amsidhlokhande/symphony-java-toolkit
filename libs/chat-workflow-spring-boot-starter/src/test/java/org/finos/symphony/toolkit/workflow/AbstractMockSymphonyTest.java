@@ -6,19 +6,7 @@ import org.finos.symphony.toolkit.workflow.java.perform.PerformerConfig;
 import org.finos.symphony.toolkit.workflow.java.resolvers.ResolverConfig;
 import org.finos.symphony.toolkit.workflow.sources.symphony.SymphonyBot;
 import org.finos.symphony.toolkit.workflow.sources.symphony.SymphonyWorkflowConfig;
-import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.freemarker.AuthorConverter;
-import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.freemarker.BeanConverter;
-import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.freemarker.BooleanConverter;
-import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.freemarker.CashTagConverter;
-import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.freemarker.CollectionConverter;
-import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.freemarker.EnumConverter;
-import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.freemarker.HashTagConverter;
-import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.freemarker.IDConverter;
-import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.freemarker.InstantConverter;
-import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.freemarker.NumberConverter;
-import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.freemarker.RoomConverter;
-import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.freemarker.StringConverter;
-import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.freemarker.UserConverter;
+import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.freemarker.*;
 import org.finos.symphony.toolkit.workflow.sources.symphony.handlers.jersey.JerseyAttachmentHandlerConfig;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -58,7 +46,8 @@ import com.symphony.api.pod.UsersApi;
 		TestWorkflowConfig.class, 
 		SymphonyWorkflowConfig.class,
 		AbstractMockSymphonyTest.MockConfiguration.class, 
-		JerseyAttachmentHandlerConfig.class })
+		JerseyAttachmentHandlerConfig.class,
+		MapConverter.class})
 public abstract class AbstractMockSymphonyTest {
 
 	private static final String BOT_EMAIL = "dummybot@example.com";
