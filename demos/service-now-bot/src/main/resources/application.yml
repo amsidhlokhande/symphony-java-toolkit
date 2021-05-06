@@ -1,0 +1,11 @@
+service:
+  now:
+    base:
+      url: baseUrl
+    username: test
+    password: pass@123
+
+    ritm:
+      url: ritmUrl
+
+
