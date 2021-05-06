@@ -36,7 +36,8 @@
 		<module>demos/demo-bot</module>
 		<module>demos/demo-app</module>		
 		<module>demos/todo-bot</module>
-		<module>demos/claim-bot</module>		
+		<module>demos/claim-bot</module>
+		<module>demos/service-now-bot</module>
 	</modules>
 
 	<properties>
