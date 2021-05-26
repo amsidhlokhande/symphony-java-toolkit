@@ -1,5 +1,5 @@
 ## Symphony Chat Workflow Annotations
-This Document provides a detailed insight for the following Annotations: 
+This Document provides a detailed insight for the following Annotations:
 
 ## @Work
 
@@ -22,22 +22,56 @@ Syntax :
 
 Here editable says whether the bean is editable by Symphony user
 Depending on the value of editable field, edit screen is available / hidden in UI
-When editable = false , UI renders as : 
+When editable = false , UI renders as :
 
-![Dependency Work Annotation1](images/Work-Annotation1.png)  
+![Dependency Work Annotation1](images/Work-Annotation1.png)
 
-When editable is True , UI renders as : 
+When editable is True , UI renders as :
 
-![Dependency Work Annotation2](images/Work-Annotation2.png) 
- 
+![Dependency Work Annotation2](images/Work-Annotation2.png)
+
 Click on the … to get the Edit button
 
 
 ## @Template
 
-This Annotation conveys the chat-workflow-spring-boot-starter to use a template rather than build its 
-Own
+This Annotation conveys the chat-workflow-spring-boot-starter to use a template rather than build its
+Own.
 
+It has two attributes that we can pass into it.
+
+|Sl No.|Attribute|Type|Value|
+|:---- |:---- |:----|:----|
+|1.|edit|String|Pass the file location|
+|2.|view|String|Pass the file location|
+
+Both of them require the path of the location of .ftl which are saved in resources folder in the following format.
+
+Here abc.ftl file is stored in template directory under resources folder.
+
+Argument edit allows the html file which is editable.
+
+Syntax:
+
+```
+@Template(edit="classpath:/template/poll-create-form.ftl")
+```
+
+edit attribute allows to edit the fields as shown in the following way.
+
+![Dependency Template Annotation1](images/Template-Annotation1.png)
+
+
+And view allows only to view the file shows the parameters which we want to disclose.
+
+Syntax:
+
+```
+@Template(view="classpath:/template/result.ftl")
+```
+view just allows to view us and it is not an editable fields.
+
+![Dependency Template Annotation2](images/Template-Annotation2.png)
 
 ## @Exposed
 This Annotation enables a method to be exposed to the user in a chat room
@@ -50,7 +84,7 @@ This Annotation enables a method to be exposed to the user in a chat room
 |4.|isButton|Boolean|YES|True|
 |5.|rooms|String[]|NA|-|
 
-Syntax : 
+Syntax :
 ```
 @Exposed(description="Begin New Expense Claim")
   public static Claim open(StartClaim c) {
@@ -60,15 +94,15 @@ Syntax :
     return out;
   }
 ```
-UI renders as : 
+UI renders as :
 
-![Dependency Exposed Annotation1](images/Exposed-Annotation1.png)  
+![Dependency Exposed Annotation1](images/Exposed-Annotation1.png)
 
-Explanation : 
+Explanation :
 When user types /open in the Room where this bot is added, Open() is called .
 This Method requires an object of StartClaim class , Hence User is provided with a form to create object of StartClaim
 The values passed to Description and amount are in turn passed to Claim class properties
-2) @Exposed' annotation can also be employed to verify the Workflow is applicable to specific room Only 
+2) @Exposed' annotation can also be employed to verify the Workflow is applicable to specific room Only
 
 Syntax  :
 ```
@@ -158,27 +192,27 @@ By doing this /approve or approve button will no longer be visible in Help page.
 
 
 ## @Display Annotation:
-   This annotation is used to customize the workflow attribute properties to display in symphony bot application. We can override the name, show/hide the attribute.
+This annotation is used to customize the workflow attribute properties to display in symphony bot application. We can override the name, show/hide the attribute.
 
 |Sl No.|Attribute|Type|Default|Value|
 |:---- |:---- |:-----|:-----|:-----|
 |1.|name|String|NA|-|
 |2.|visible|Boolean|YES|True|
 
-   This is an optional annotation. If you haven't used this annotation then workflow attribute will be displayed with default syntax of camel case having space between words.
-    ```
-    Syntax:
-    @Display(name = "Amount", visible = true)
-    Number amt;
-    ```
-    
-   Properties of @Display annotation:
-    Name -> This property is used to override the name of the attribute to display on symphony bot. 
-    Visible -> This property is used to show or hide the workflow attribute to be displayed on symphony bot. Default value is true.
+This is an optional annotation. If you haven't used this annotation then workflow attribute will be displayed with default syntax of camel case having space between words.
+```
+Syntax:
+@Display(name = "Amount", visible = true)
+Number amt;
+```
+
+Properties of @Display annotation:
+Name -> This property is used to override the name of the attribute to display on symphony bot.
+Visible -> This property is used to show or hide the workflow attribute to be displayed on symphony bot. Default value is true.
 
 ## Examples of Display Annotation:
-   --	Without Display Annotation:
-   
+--	Without Display Annotation:
+
         ```
         @Work(name = "Person Form", editable = true, instructions = "Person Template")
         public class Person {
@@ -188,10 +222,10 @@ By doing this /approve or approve button will no longer be visible in Help page.
             private String emailId;
         ```    
 
-   ![Dependency Display Annotation1](images/Display-Annotation1.png) 
+![Dependency Display Annotation1](images/Display-Annotation1.png)
 
 
-   --	Display Annotation with name and visible parameters:
+--	Display Annotation with name and visible parameters:
 
         ```
         @Work(editable = true, instructions = "Person Form", name = "Person")
@@ -205,10 +239,10 @@ By doing this /approve or approve button will no longer be visible in Help page.
             private String email;
         ```
 
-   ![Dependency Display Annotation2](images/Display-Annotation2.png) 
+![Dependency Display Annotation2](images/Display-Annotation2.png)
 
 
-   --	Display annotation with visible true/false:
+--	Display annotation with visible true/false:
 
         ```
         @Work(editable = true, instructions = "Person Form", name = "Person")
@@ -222,5 +256,5 @@ By doing this /approve or approve button will no longer be visible in Help page.
             private String email;
         ```
 
-   ![Dependency Display Annotation3](images/Display-Annotation3.png) 
+![Dependency Display Annotation3](images/Display-Annotation3.png) 
 
